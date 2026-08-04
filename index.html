@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber Security Analytics | SQL Portfolio</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2305050a'/%3E%3Cpath d='M32 7l20 8v14c0 13-8 23-20 28C20 52 12 42 12 29V15l20-8z' fill='%2310b981'/%3E%3Cpath d='M32 14v35c8-4 13-11 13-20v-9l-13-6z' fill='%230f766e'/%3E%3C/svg%3E">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/alasql@1.7.3/dist/alasql.min.js"></script>
+    <script src="./cyber_data.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+        body { background-color: #05050a; color: #e2e8f0; font-family: 'Space Grotesk', sans-serif; overflow: hidden; }
+        .glass-panel { background: rgba(10, 15, 25, 0.85); backdrop-filter: blur(16px); border: 1px solid rgba(16, 185, 129, 0.2); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); }
+        .text-gradient { background: linear-gradient(135deg, #34d399 0%, #10b981 50%, #059669 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .custom-scroll::-webkit-scrollbar { width: 4px; height: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: rgba(10, 15, 25, 0.5); }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(16, 185, 129, 0.3); border-radius: 3px; }
+        .code-editor { background: #06080d; background-image: radial-gradient(#102a1c 1px, transparent 1px); background-size: 20px 20px; }
+        .query-btn.active { background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.5); }
+        .metric-card { background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(6, 78, 59, 0.28)); border: 1px solid rgba(16, 185, 129, 0.18); }
+        .filter-control { background: rgba(15, 23, 42, 0.72); border: 1px solid rgba(51, 65, 85, 0.8); color: #d1fae5; }
+        .chart-track { background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(51, 65, 85, 0.45); }
+        .chart-bar { background: linear-gradient(90deg, #10b981, #14b8a6); transition: width 420ms ease; }
+        .sql-highlight .keyword { color: #34d399; font-weight: 700; }
+        .sql-highlight .string { color: #fbbf24; }
+        .sql-highlight .number { color: #38bdf8; }
+        .smooth-btn { transition: transform 220ms ease, background-color 220ms ease, border-color 220ms ease, box-shadow 220ms ease, color 220ms ease; }
+        .smooth-btn:hover { transform: translateY(-2px); }
+        .smooth-btn:active { transform: translateY(0) scale(0.98); }
+        .fade-in { animation: fadeIn 420ms ease both; }
+        .slide-up { animation: slideUp 520ms ease both; }
+        .page-transition {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 30%;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.98), rgba(20, 184, 166, 0.98));
+            transform: skewX(-5deg) translateX(-60px);
+            box-shadow: none;
+            z-index: 1;
+            pointer-events: none;
+        }
+        .page-transition.anim-trans { animation: pageSweep 1.65s ease-in-out forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pageSweep {
+            0% { z-index: 1; width: 30%; transform: skewX(-5deg) translateX(-60px); box-shadow: none; }
+            20% { z-index: 60; width: 45%; transform: skewX(5deg) translateX(-100%); }
+            42% { z-index: 60; width: 110%; transform: skewX(0deg) translateX(0); box-shadow: 18px 0 45px rgba(16, 185, 129, 0.24); }
+            62% { z-index: 60; width: 110%; transform: skewX(3deg) translateX(0); box-shadow: 18px 0 45px rgba(16, 185, 129, 0.24); }
+            82% { z-index: 60; width: 70%; transform: skewX(1deg) translateX(-100%); box-shadow: 18px 0 45px rgba(16, 185, 129, 0.16); }
+            100% { z-index: 1; width: 30%; transform: skewX(-5deg) translateX(-60px); box-shadow: none; }
+        }
+        @media (max-width: 900px) {
+            body { overflow: auto; }
+            .mobile-scroll-page { height: auto; min-height: 100vh; overflow: visible; }
+            .mobile-scroll-content { overflow: visible; max-height: none; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        const CYBER_DATA = window.CYBER_DATA || [];
+
+        alasql("CREATE TABLE cybersecurity_cases_india_combined (City STRING, Incident_Type STRING, Amount_Lost_INR INT, Year INT, Category STRING, Day INT)");
+        alasql.tables.cybersecurity_cases_india_combined.data = CYBER_DATA;
+
+        const QUERIES = [
+            { id: 1, title: "Retrieve All Records", logic: "Basic DQL statement to extract the entire dataset for preliminary review.", sql: "SELECT * FROM cybersecurity_cases_india_combined;" },
+            { id: 2, title: "Filter by City (Bangalore)", logic: "Isolates incidents specific to the Bangalore region.", sql: "SELECT City, Incident_Type FROM cybersecurity_cases_india_combined\nWHERE City = 'Bangalore';" },
+            { id: 3, title: "Unique Incident Types", logic: "Identifies the distinct categories of cyber attacks recorded.", sql: "SELECT Incident_Type \nFROM cybersecurity_cases_india_combined\nGROUP BY Incident_Type;" },
+            { id: 4, title: "Top 10 Highest Losses", logic: "Finds the max financial damage per incident type, sorting by highest impact.", sql: "SELECT Incident_Type, MAX(Amount_Lost_INR) AS max_amount_lost \nFROM cybersecurity_cases_india_combined\nGROUP BY Incident_Type\nORDER BY MAX(Amount_Lost_INR) DESC\nLIMIT 10;" },
+            { id: 5, title: "High-Loss Phishing (2023)", logic: "Multi-condition filtering for specific threat vectors in a given timeframe.", sql: "SELECT Year, Incident_Type, Amount_Lost_INR \nFROM cybersecurity_cases_india_combined\nWHERE Year = 2023 \nAND Incident_Type = 'Phishing'\nAND Amount_Lost_INR > 200000;" },
+            { id: 6, title: "Total Loss by Incident Type", logic: "Aggregates total financial impact grouped by the nature of the cybercrime.", sql: "SELECT Incident_Type , SUM(Amount_Lost_INR) AS total_amount\nFROM cybersecurity_cases_india_combined\nGROUP BY Incident_Type\nORDER BY SUM(Amount_Lost_INR) DESC;" },
+            { id: 7, title: "Incident Count by City", logic: "Determines which cities report the highest volume of security breaches.", sql: "SELECT City , COUNT(*) AS total_incidents\nFROM cybersecurity_cases_india_combined\nGROUP BY City\nORDER BY COUNT(*) DESC;" },
+            { id: 8, title: "Average Loss by Sector", logic: "Evaluates the average financial damage inflicted upon different business categories.", sql: "SELECT Category, AVG(Amount_Lost_INR) AS avg_lost\nFROM cybersecurity_cases_india_combined\nGROUP BY Category\nORDER BY AVG(Amount_Lost_INR);" },
+            { id: 9, title: "High Frequency Hubs", logic: "Uses HAVING to filter grouped data for city-year combinations with >50 cases.", sql: "SELECT Year, City, COUNT(*) AS total_incidents\nFROM cybersecurity_cases_india_combined\nGROUP BY City, Year\nHAVING COUNT(*) > 50;" },
+            { id: 10, title: "Costliest Incident Type", logic: "Identifies the single most financially damaging cyber threat globally.", sql: "SELECT Incident_Type, SUM(Amount_Lost_INR) AS total_financial_loss\nFROM cybersecurity_cases_india_combined\nGROUP BY Incident_Type\nORDER BY SUM(Amount_Lost_INR) DESC\nLIMIT 1;" },
+            { id: 11, title: "Loss Categorization (CASE)", logic: "Buckets incidents into High, Medium, and Low loss tiers.", sql: "SELECT \n    CASE \n        WHEN Amount_Lost_INR > 300000 THEN 'High Loss'\n        WHEN Amount_Lost_INR BETWEEN 100000 AND 300000 THEN 'Medium Loss'\n        ELSE 'Low Loss' \n    END AS Loss_Category,\n    COUNT(*) AS incident_count\nFROM cybersecurity_cases_india_combined\nGROUP BY \n    CASE \n        WHEN Amount_Lost_INR > 300000 THEN 'High Loss'\n        WHEN Amount_Lost_INR BETWEEN 100000 AND 300000 THEN 'Medium Loss'\n        ELSE 'Low Loss' \n    END;" },
+            { id: 12, title: "Risk Level Assessment", logic: "Derives a critical/high/moderate threat level based on the incident type.", sql: "SELECT \n    City, \n    Incident_Type,\n    CASE \n        WHEN Incident_Type IN ('Data Breach', 'Ransomware') THEN 'Critical'\n        WHEN Incident_Type = 'Phishing' THEN 'High'\n        ELSE 'Moderate' \n    END AS Risk_Level\nFROM cybersecurity_cases_india_combined;" },
+            { id: 13, title: "Conditional Aggregation", logic: "Pivots data to compare Data Breach losses vs all other losses in columns.", sql: "SELECT \n    SUM(CASE WHEN Incident_Type = 'Data Breach' THEN Amount_Lost_INR ELSE 0 END) AS data_breach_loss,\n    SUM(CASE WHEN Incident_Type != 'Data Breach' THEN Amount_Lost_INR ELSE 0 END) AS all_other_loss\nFROM cybersecurity_cases_india_combined;" },
+            { id: 14, title: "Above Average Filtering", logic: "Uses a subquery to find incidents exceeding the overall average loss.", sql: "SELECT *\nFROM cybersecurity_cases_india_combined\nWHERE Amount_Lost_INR > (SELECT AVG(Amount_Lost_INR) FROM cybersecurity_cases_india_combined);" },
+            { id: 15, title: "CTE Filtering", logic: "Common Table Expression to calculate averages before filtering.", sql: "WITH AvgLossCTE AS (\n    SELECT Incident_Type, AVG(Amount_Lost_INR) AS avg_loss\n    FROM cybersecurity_cases_india_combined\n    GROUP BY Incident_Type\n)\nSELECT Incident_Type, avg_loss\nFROM AvgLossCTE\nWHERE avg_loss > 250000;" },
+            { id: 16, title: "Correlated Subquery", logic: "Compares individual loss against the maximum loss for that specific city.", sql: "SELECT \n    c1.City, \n    c1.Incident_Type, \n    c1.Amount_Lost_INR, \n    (SELECT MAX(c2.Amount_Lost_INR) \n     FROM cybersecurity_cases_india_combined c2 \n     WHERE c2.City = c1.City) AS max_loss_in_city\nFROM cybersecurity_cases_india_combined c1;" },
+            { id: 17, title: "CTE Max Incidents", logic: "Identifies the year with the highest volume of cyber attacks.", sql: "WITH YearlyIncidents AS (\n    SELECT Year, COUNT(*) AS total_incidents\n    FROM cybersecurity_cases_india_combined\n    GROUP BY Year\n)\nSELECT Year, total_incidents\nFROM YearlyIncidents\nORDER BY total_incidents DESC\nLIMIT 1;" },
+            { id: 18, title: "Window Function: RANK", logic: "Ranks incidents within each city based on financial loss.", sql: "SELECT \n    City, \n    Incident_Type, \n    Amount_Lost_INR, \n    RANK() OVER (PARTITION BY City ORDER BY Amount_Lost_INR DESC) AS rank_in_city\nFROM cybersecurity_cases_india_combined;" },
+            { id: 19, title: "Cumulative Total (OVER)", logic: "Calculates running total of losses ordered chronologically.", sql: "SELECT \n    Year, \n    Day, \n    Incident_Type, \n    Amount_Lost_INR, \n    SUM(Amount_Lost_INR) OVER (ORDER BY Year, Day) AS cumulative_total\nFROM cybersecurity_cases_india_combined\nWHERE City = 'Mumbai';" },
+            { id: 20, title: "Top 3 by Category (DENSE_RANK)", logic: "Finds top 3 costliest incidents per business category.", sql: "WITH RankedCategories AS (\n    SELECT \n        Category, \n        Incident_Type, \n        Amount_Lost_INR, \n        DENSE_RANK() OVER (PARTITION BY Category ORDER BY Amount_Lost_INR DESC) AS rnk\n    FROM cybersecurity_cases_india_combined\n)\nSELECT Category, Incident_Type, Amount_Lost_INR\nFROM RankedCategories\nWHERE rnk <= 3;" },
+            { id: 21, title: "Compare Previous (LAG)", logic: "Uses LAG to find the difference in loss compared to the previous incident.", sql: "SELECT \n    Year, \n    Day, \n    Amount_Lost_INR, \n    LAG(Amount_Lost_INR) OVER (ORDER BY Year, Day) AS prev_amount,\n    Amount_Lost_INR - LAG(Amount_Lost_INR) OVER (ORDER BY Year, Day) AS difference\nFROM cybersecurity_cases_india_combined\nWHERE Category = 'Corporate';" },
+            { id: 22, title: "Percentage Contribution", logic: "Determines what percentage a single incident contributed to the yearly total.", sql: "SELECT \n    Year, \n    Incident_Type, \n    Amount_Lost_INR, \n    SUM(Amount_Lost_INR) OVER (PARTITION BY Year) AS total_year_loss,\n    (Amount_Lost_INR * 100.0 / SUM(Amount_Lost_INR) OVER (PARTITION BY Year)) AS percentage_contribution\nFROM cybersecurity_cases_india_combined;" },
+            { id: 23, title: "Self Join for Comparisons", logic: "Finds pairs of identical incidents in the same city/year but on different days.", sql: "SELECT \n    a.City, \n    a.Year, \n    a.Incident_Type, \n    a.Day AS Day_1, \n    a.Amount_Lost_INR AS Amount_1, \n    b.Day AS Day_2, \n    b.Amount_Lost_INR AS Amount_2\nFROM cybersecurity_cases_india_combined a\nJOIN cybersecurity_cases_india_combined b \n  ON a.City = b.City \n AND a.Year = b.Year \n AND a.Incident_Type = b.Incident_Type \n AND a.Day < b.Day;" },
+            { id: 24, title: "CTE INNER JOIN", logic: "Joins two CTEs to compare year-over-year financial losses.", sql: "WITH Loss2022 AS (\n    SELECT City, SUM(Amount_Lost_INR) AS total_2022\n    FROM cybersecurity_cases_india_combined\n    WHERE Year = 2022\n    GROUP BY City\n),\nLoss2023 AS (\n    SELECT City, SUM(Amount_Lost_INR) AS total_2023\n    FROM cybersecurity_cases_india_combined\n    WHERE Year = 2023\n    GROUP BY City\n)\nSELECT \n    L22.City, \n    L22.total_2022 AS Loss_2022, \n    L23.total_2023 AS Loss_2023, \n    (L23.total_2023 - L22.total_2022) AS loss_difference\nFROM Loss2022 L22\nINNER JOIN Loss2023 L23 \n    ON L22.City = L23.City;" },
+            { id: 25, title: "Matrix Mapping (CROSS JOIN)", logic: "Generates theoretical matrix to find City-Incident combinations with zero cases.", sql: "WITH AllCities AS (\n    SELECT DISTINCT City FROM cybersecurity_cases_india_combined\n),\nAllIncidents AS (\n    SELECT DISTINCT Incident_Type FROM cybersecurity_cases_india_combined\n),\nTheoreticalMatrix AS (\n    SELECT C.City, I.Incident_Type\n    FROM AllCities C\n    CROSS JOIN AllIncidents I\n)\nSELECT \n    TM.City, \n    TM.Incident_Type,\n    COUNT(T.Amount_Lost_INR) AS recorded_cases\nFROM TheoreticalMatrix TM\nLEFT JOIN cybersecurity_cases_india_combined T \n    ON TM.City = T.City AND TM.Incident_Type = T.Incident_Type\nGROUP BY TM.City, TM.Incident_Type\nHAVING COUNT(T.Amount_Lost_INR) = 0;" }
+        ];
+
+        const groupBy = (rows, key) => rows.reduce((groups, row) => {
+            const value = typeof key === 'function' ? key(row) : row[key];
+            groups[value] = groups[value] || [];
+            groups[value].push(row);
+            return groups;
+        }, {});
+
+        const formatINR = (value) => new Intl.NumberFormat('en-IN', {
+            style: 'currency',
+            currency: 'INR',
+            maximumFractionDigits: 0
+        }).format(value || 0);
+
+        const getUniqueValues = (key) => [...new Set(CYBER_DATA.map((row) => row[key]))].sort((a, b) => String(a).localeCompare(String(b)));
+
+        const summarizeBy = (rows, key, valueMode = 'count') => Object.entries(groupBy(rows, key))
+            .map(([label, groupedRows]) => ({
+                label,
+                value: valueMode === 'sum'
+                    ? groupedRows.reduce((sum, row) => sum + row.Amount_Lost_INR, 0)
+                    : groupedRows.length
+            }))
+            .sort((a, b) => b.value - a.value);
+
+        const escapeHTML = (text) => String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+
+        const highlightSQL = (sql) => escapeHTML(sql)
+            .replace(/('[^']*')/g, '<span class="string">$1</span>')
+            .replace(/\b(\d+)\b/g, '<span class="number">$1</span>')
+            .replace(/\b(SELECT|FROM|WHERE|GROUP BY|ORDER BY|HAVING|LIMIT|WITH|AS|CASE|WHEN|THEN|ELSE|END|JOIN|INNER JOIN|LEFT JOIN|CROSS JOIN|ON|AND|OR|IN|BETWEEN|DISTINCT|COUNT|SUM|AVG|MAX|MIN|RANK|DENSE_RANK|LAG|OVER|PARTITION BY)\b/gi, '<span class="keyword">$1</span>');
+
+        const windowQueryHandlers = {
+            18: () => Object.values(groupBy(CYBER_DATA, 'City')).flatMap((cityRows) => {
+                const sortedRows = [...cityRows].sort((a, b) => b.Amount_Lost_INR - a.Amount_Lost_INR);
+                let previousLoss = null;
+                let previousRank = 0;
+                return sortedRows.map((row, index) => {
+                    const rank = row.Amount_Lost_INR === previousLoss ? previousRank : index + 1;
+                    previousLoss = row.Amount_Lost_INR;
+                    previousRank = rank;
+                    return {
+                        City: row.City,
+                        Incident_Type: row.Incident_Type,
+                        Amount_Lost_INR: row.Amount_Lost_INR,
+                        rank_in_city: rank
+                    };
+                });
+            }),
+            19: () => {
+                let runningTotal = 0;
+                return CYBER_DATA
+                    .filter((row) => row.City === 'Mumbai')
+                    .sort((a, b) => a.Year - b.Year || a.Day - b.Day)
+                    .map((row) => {
+                        runningTotal += row.Amount_Lost_INR;
+                        return {
+                            Year: row.Year,
+                            Day: row.Day,
+                            Incident_Type: row.Incident_Type,
+                            Amount_Lost_INR: row.Amount_Lost_INR,
+                            cumulative_total: runningTotal
+                        };
+                    });
+            },
+            20: () => Object.values(groupBy(CYBER_DATA, 'Category')).flatMap((categoryRows) => {
+                const sortedRows = [...categoryRows].sort((a, b) => b.Amount_Lost_INR - a.Amount_Lost_INR);
+                let previousLoss = null;
+                let denseRank = 0;
+                return sortedRows
+                    .map((row) => {
+                        if (row.Amount_Lost_INR !== previousLoss) {
+                            denseRank += 1;
+                            previousLoss = row.Amount_Lost_INR;
+                        }
+                        return {
+                            Category: row.Category,
+                            Incident_Type: row.Incident_Type,
+                            Amount_Lost_INR: row.Amount_Lost_INR,
+                            rnk: denseRank
+                        };
+                    })
+                    .filter((row) => row.rnk <= 3)
+                    .map(({ Category, Incident_Type, Amount_Lost_INR }) => ({ Category, Incident_Type, Amount_Lost_INR }));
+            }),
+            21: () => {
+                let previousAmount = null;
+                return CYBER_DATA
+                    .filter((row) => row.Category === 'Corporate')
+                    .sort((a, b) => a.Year - b.Year || a.Day - b.Day)
+                    .map((row) => {
+                        const output = {
+                            Year: row.Year,
+                            Day: row.Day,
+                            Amount_Lost_INR: row.Amount_Lost_INR,
+                            prev_amount: previousAmount,
+                            difference: previousAmount === null ? null : row.Amount_Lost_INR - previousAmount
+                        };
+                        previousAmount = row.Amount_Lost_INR;
+                        return output;
+                    });
+            },
+            22: () => {
+                const yearlyTotals = Object.entries(groupBy(CYBER_DATA, 'Year')).reduce((totals, [year, rows]) => {
+                    totals[year] = rows.reduce((sum, row) => sum + row.Amount_Lost_INR, 0);
+                    return totals;
+                }, {});
+
+                return CYBER_DATA.map((row) => ({
+                    Year: row.Year,
+                    Incident_Type: row.Incident_Type,
+                    Amount_Lost_INR: row.Amount_Lost_INR,
+                    total_year_loss: yearlyTotals[row.Year],
+                    percentage_contribution: Number(((row.Amount_Lost_INR * 100) / yearlyTotals[row.Year]).toFixed(2))
+                }));
+            }
+        };
+
+        const App = () => {
+            const [showLanding, setShowLanding] = useState(true);
+            const [isTransitioning, setIsTransitioning] = useState(false);
+            const [activeQuery, setActiveQuery] = useState(QUERIES[0]);
+            const [userSQL, setUserSQL] = useState(QUERIES[0].sql);
+            const [result, setResult] = useState([]);
+            const [msg, setMsg] = useState({ type: 'info', text: 'Select a query from the portfolio menu to begin.' });
+            const [filters, setFilters] = useState({ City: 'All', Year: 'All', Category: 'All', Incident_Type: 'All' });
+
+            const filteredData = useMemo(() => CYBER_DATA.filter((row) =>
+                Object.entries(filters).every(([key, value]) => value === 'All' || String(row[key]) === String(value))
+            ), [filters]);
+
+            const dashboardStats = useMemo(() => {
+                const totalLoss = filteredData.reduce((sum, row) => sum + row.Amount_Lost_INR, 0);
+                const topCity = summarizeBy(filteredData, 'City')[0];
+                const topIncident = summarizeBy(filteredData, 'Incident_Type', 'sum')[0];
+                return {
+                    totalIncidents: filteredData.length,
+                    totalLoss,
+                    topCity: topCity ? `${topCity.label} (${topCity.value})` : 'No data',
+                    topIncident: topIncident ? `${topIncident.label}` : 'No data'
+                };
+            }, [filteredData]);
+
+            const chartData = useMemo(() => ({
+                lossByIncident: summarizeBy(filteredData, 'Incident_Type', 'sum').slice(0, 5),
+                incidentsByCity: summarizeBy(filteredData, 'City').slice(0, 5),
+                yearlyTrend: summarizeBy(filteredData, 'Year').sort((a, b) => Number(a.label) - Number(b.label))
+            }), [filteredData]);
+
+            useEffect(() => {
+                setUserSQL(activeQuery.sql);
+                setResult([]);
+                setMsg({ type: 'info', text: `Query loaded. ${CYBER_DATA.length.toLocaleString()} CSV rows are ready.` });
+            }, [activeQuery]);
+
+            const executeSQL = () => {
+                const normalizedSQL = userSQL.trim();
+                const hasWindowFunction = normalizedSQL.toUpperCase().includes("OVER (") || normalizedSQL.toUpperCase().includes("RANK()") || normalizedSQL.toUpperCase().includes("LAG(");
+                const isPortfolioWindowQuery = normalizedSQL === activeQuery.sql.trim() && windowQueryHandlers[activeQuery.id];
+
+                if (isPortfolioWindowQuery) {
+                    const rows = windowQueryHandlers[activeQuery.id]();
+                    setResult(rows);
+                    setMsg({ type: 'success', text: `Advanced query calculated in-browser (${rows.length} rows returned).` });
+                    return;
+                }
+
+                if (hasWindowFunction) {
+                    setResult([]);
+                    setMsg({ type: 'error', text: 'AlaSQL cannot run edited window functions in-browser. Select the saved portfolio version to view its calculated output.' });
+                    return;
+                }
+
+                try {
+                    const res = alasql(userSQL);
+                    setResult(res);
+                    setMsg({ type: 'success', text: `Query executed successfully (${res.length} rows returned).` });
+                } catch (err) {
+                    setResult([]);
+                    setMsg({ type: 'error', text: `SYNTAX ERROR: ${err.message}` });
+                }
+            };
+
+            const openPortfolio = () => {
+                setIsTransitioning(true);
+                window.setTimeout(() => setShowLanding(false), 950);
+            };
+
+            const updateFilter = (key, value) => {
+                setFilters((currentFilters) => ({ ...currentFilters, [key]: value }));
+            };
+
+            const exportResults = () => {
+                if (!result.length) {
+                    setMsg({ type: 'error', text: 'Run a query before exporting results.' });
+                    return;
+                }
+
+                const columns = Object.keys(result[0]);
+                const csvRows = [
+                    columns.join(','),
+                    ...result.map((row) => columns.map((column) => `"${String(row[column] ?? '').replace(/"/g, '""')}"`).join(','))
+                ];
+                const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `query-${activeQuery.id}-results.csv`;
+                link.click();
+                URL.revokeObjectURL(url);
+                setMsg({ type: 'success', text: `Exported ${result.length} rows to CSV.` });
+            };
+
+            const BarChart = ({ title, rows, formatter = (value) => value.toLocaleString() }) => {
+                const maxValue = Math.max(...rows.map((row) => row.value), 1);
+
+                return (
+                    <div className="glass-panel rounded-xl p-4 min-h-[220px]">
+                        <h3 className="text-[10px] text-emerald-500 font-mono uppercase tracking-widest mb-4">{title}</h3>
+                        <div className="space-y-3">
+                            {rows.length === 0 ? (
+                                <div className="h-32 flex items-center justify-center text-xs font-mono text-slate-500 uppercase">No matching data</div>
+                            ) : rows.map((row) => (
+                                <div key={row.label}>
+                                    <div className="flex justify-between gap-3 text-xs mb-1">
+                                        <span className="text-slate-300 truncate">{row.label}</span>
+                                        <span className="text-emerald-300 font-mono whitespace-nowrap">{formatter(row.value)}</span>
+                                    </div>
+                                    <div className="chart-track h-2 rounded overflow-hidden">
+                                        <div className="chart-bar h-full rounded" style={{ width: `${Math.max((row.value / maxValue) * 100, 4)}%` }}></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            };
+
+            if (showLanding) {
+                return (
+                    <main className="min-h-screen w-screen bg-[#05050a] text-white flex items-center justify-center p-6 relative overflow-hidden fade-in">
+                        <div className={`page-transition ${isTransitioning ? 'anim-trans' : ''}`}></div>
+                        <div className="absolute inset-0 opacity-40">
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(16,185,129,0.24),transparent_28%),radial-gradient(circle_at_78%_72%,rgba(20,184,166,0.18),transparent_30%)]"></div>
+                            <div className="absolute inset-0 code-editor"></div>
+                        </div>
+                        <section className="relative z-10 max-w-4xl w-full text-center slide-up">
+                            <div className="mx-auto mb-8 w-20 h-20 rounded bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center shadow-2xl shadow-emerald-500/20">
+                                <i className="fa-solid fa-shield-halved text-white text-3xl"></i>
+                            </div>
+                            <p className="font-mono text-emerald-400 text-sm uppercase tracking-[0.35em] mb-4">SQL Data Analytics Project</p>
+                            <h1 className="text-5xl md:text-7xl font-bold tracking-wide mb-5">
+                                Ambrish Mishra
+                            </h1>
+                            <h2 className="text-2xl md:text-4xl font-semibold text-gradient mb-6">
+                                Cyber Crime Data Analysis
+                            </h2>
+                            <p className="max-w-2xl mx-auto text-slate-300 text-base md:text-lg leading-relaxed mb-10">
+                                Explore SQL queries, full CSV records, financial loss patterns, incident categories, and city-wise cybersecurity insights in one interactive dashboard.
+                            </p>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-3xl mx-auto mb-10 text-left">
+                                <div className="metric-card rounded-xl p-4">
+                                    <div className="text-[10px] text-emerald-400 font-mono uppercase tracking-widest mb-2">About Dataset</div>
+                                    <p className="text-sm text-slate-300">Indian cybersecurity cases across cities, sectors, years, incident types, and financial losses.</p>
+                                </div>
+                                <div className="metric-card rounded-xl p-4">
+                                    <div className="text-[10px] text-emerald-400 font-mono uppercase tracking-widest mb-2">Analysis</div>
+                                    <p className="text-sm text-slate-300">SQL queries cover filtering, grouping, CTEs, joins, CASE logic, and window functions.</p>
+                                </div>
+                                <div className="metric-card rounded-xl p-4">
+                                    <div className="text-[10px] text-emerald-400 font-mono uppercase tracking-widest mb-2">Records</div>
+                                    <p className="text-sm text-slate-300">{CYBER_DATA.length.toLocaleString()} CSV rows power the dashboard and query results.</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={openPortfolio}
+                                disabled={isTransitioning}
+                                className="smooth-btn inline-flex items-center justify-center gap-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-800 disabled:cursor-wait px-8 py-4 rounded text-white text-sm font-bold tracking-widest uppercase shadow-xl shadow-emerald-900/30 hover:shadow-emerald-700/40"
+                            >
+                                <i className="fa-solid fa-arrow-right"></i>
+                                Open SQL Portfolio
+                            </button>
+                            <div className="mt-8 font-mono text-xs text-slate-500 uppercase tracking-widest">
+                                {CYBER_DATA.length.toLocaleString()} CSV rows loaded
+                            </div>
+                        </section>
+                    </main>
+                );
+            }
+
+            return (
+                <div className="mobile-scroll-page min-h-screen lg:h-screen w-screen flex flex-col bg-[#05050a] relative fade-in">
+                    <header className="relative z-50 px-4 md:px-6 py-4 border-b border-emerald-900/40 bg-[#06080d] flex flex-col md:flex-row gap-4 justify-between md:items-center">
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                                <i className="fa-solid fa-shield-halved text-white text-lg"></i>
+                            </div>
+                            <div>
+                                <h1 className="font-bold text-xl text-white tracking-wide">Cyber Security <span className="text-gradient">SQL Portfolio</span></h1>
+                                <div className="text-[10px] text-emerald-400/70 font-mono tracking-widest mt-1">DB: cybersecurity_cases_india_combined</div>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-5">
+                            <button
+                                onClick={() => {
+                                    setIsTransitioning(false);
+                                    setShowLanding(true);
+                                }}
+                                className="smooth-btn border border-emerald-500/30 hover:border-emerald-400/70 bg-emerald-950/20 hover:bg-emerald-900/40 px-4 py-2 rounded text-emerald-300 text-xs font-bold uppercase tracking-widest flex items-center gap-2"
+                            >
+                                <i className="fa-solid fa-house"></i>
+                                Home
+                            </button>
+                            <div className="text-right font-mono">
+                                <div className="text-[10px] text-slate-500 uppercase tracking-widest">CSV Rows Loaded</div>
+                                <div className="text-lg font-bold text-emerald-400">{CYBER_DATA.length.toLocaleString()}</div>
+                            </div>
+                        </div>
+                    </header>
+
+                    <div className="mobile-scroll-content flex-1 flex flex-col lg:flex-row overflow-hidden">
+                        {/* Sidebar: Query Selection */}
+                        <div className="lg:w-1/4 lg:min-w-[290px] max-h-72 lg:max-h-none border-b lg:border-b-0 lg:border-r border-slate-800 bg-[#080b12] flex flex-col">
+                            <div className="p-4 border-b border-slate-800">
+                                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-mono">Portfolio Queries ({QUERIES.length})</h2>
+                            </div>
+                            <div className="flex-1 overflow-y-auto custom-scroll p-2 space-y-1">
+                                {QUERIES.map((q) => (
+                                    <button 
+                                        key={q.id} 
+                                        onClick={() => setActiveQuery(q)}
+                                        className={`smooth-btn w-full text-left p-3 rounded-lg border ${activeQuery.id === q.id ? 'query-btn active shadow-lg shadow-emerald-950/20' : 'border-transparent hover:bg-slate-800/50 hover:border-slate-700/70'}`}
+                                    >
+                                        <div className="text-xs font-bold text-emerald-400 mb-1">Query {q.id}</div>
+                                        <div className="text-sm font-semibold text-slate-200 truncate">{q.title}</div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Main Content: Editor & Results */}
+                        <div className="mobile-scroll-content lg:w-3/4 flex flex-col p-4 gap-4 bg-[#05050a] overflow-y-auto custom-scroll">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                                <div className="metric-card rounded-xl p-4">
+                                    <div className="text-[10px] text-slate-500 uppercase tracking-widest font-mono mb-2">Total Incidents</div>
+                                    <div className="text-2xl font-bold text-white">{dashboardStats.totalIncidents.toLocaleString()}</div>
+                                </div>
+                                <div className="metric-card rounded-xl p-4">
+                                    <div className="text-[10px] text-slate-500 uppercase tracking-widest font-mono mb-2">Total Loss</div>
+                                    <div className="text-2xl font-bold text-emerald-300">{formatINR(dashboardStats.totalLoss)}</div>
+                                </div>
+                                <div className="metric-card rounded-xl p-4">
+                                    <div className="text-[10px] text-slate-500 uppercase tracking-widest font-mono mb-2">Top City</div>
+                                    <div className="text-xl font-bold text-white truncate">{dashboardStats.topCity}</div>
+                                </div>
+                                <div className="metric-card rounded-xl p-4">
+                                    <div className="text-[10px] text-slate-500 uppercase tracking-widest font-mono mb-2">Costliest Type</div>
+                                    <div className="text-xl font-bold text-white truncate">{dashboardStats.topIncident}</div>
+                                </div>
+                            </div>
+
+                            <div className="glass-panel rounded-xl p-4">
+                                <div className="flex flex-col xl:flex-row xl:items-end gap-3">
+                                    {['City', 'Year', 'Category', 'Incident_Type'].map((key) => (
+                                        <label key={key} className="flex-1">
+                                            <span className="block text-[10px] text-emerald-500 font-mono uppercase tracking-widest mb-2">{key.replace('_', ' ')}</span>
+                                            <select
+                                                value={filters[key]}
+                                                onChange={(event) => updateFilter(key, event.target.value)}
+                                                className="filter-control w-full rounded px-3 py-2 text-sm outline-none focus:border-emerald-400"
+                                            >
+                                                <option value="All">All</option>
+                                                {getUniqueValues(key).map((value) => <option key={value} value={value}>{value}</option>)}
+                                            </select>
+                                        </label>
+                                    ))}
+                                    <button
+                                        onClick={() => setFilters({ City: 'All', Year: 'All', Category: 'All', Incident_Type: 'All' })}
+                                        className="smooth-btn border border-slate-700 hover:border-emerald-500 bg-slate-900/70 hover:bg-emerald-950/30 px-4 py-2 rounded text-slate-200 text-xs font-bold uppercase tracking-widest"
+                                    >
+                                        Reset Filters
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                                <BarChart title="Loss by Incident Type" rows={chartData.lossByIncident} formatter={formatINR} />
+                                <BarChart title="Incidents by City" rows={chartData.incidentsByCity} />
+                                <BarChart title="Year-Wise Trend" rows={chartData.yearlyTrend} />
+                            </div>
+                            
+                            {/* Logic Brief */}
+                            <div className="glass-panel p-4 rounded-xl">
+                                <h3 className="text-[10px] text-emerald-500 font-mono uppercase tracking-widest mb-1"><i className="fa-solid fa-code-branch mr-2"></i>Business Logic</h3>
+                                <p className="text-slate-300 text-sm">{activeQuery.logic}</p>
+                            </div>
+
+                            {/* Editor */}
+                            <div className="glass-panel rounded-xl overflow-hidden flex flex-col min-h-[380px]">
+                                <div className="bg-slate-900/80 px-4 py-2 flex flex-col sm:flex-row gap-3 sm:justify-between sm:items-center border-b border-slate-800/50">
+                                    <div className="flex gap-2">
+                                        <div className="w-3 h-3 rounded-full bg-red-500/50"></div>
+                                        <div className="w-3 h-3 rounded-full bg-yellow-500/50"></div>
+                                        <div className="w-3 h-3 rounded-full bg-emerald-500/50"></div>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        <button onClick={exportResults} className="smooth-btn border border-slate-700 hover:border-emerald-500 bg-slate-900/70 hover:bg-emerald-950/30 px-4 py-1.5 rounded text-slate-200 text-xs font-bold flex items-center gap-2">
+                                            <i className="fa-solid fa-download text-[10px]"></i> EXPORT CSV
+                                        </button>
+                                        <button onClick={executeSQL} className="smooth-btn bg-emerald-600 hover:bg-emerald-500 px-6 py-1.5 rounded text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-emerald-900/30 hover:shadow-emerald-700/40">
+                                            <i className="fa-solid fa-play text-[10px]"></i> EXECUTE SCRIPT
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="flex-1 relative code-editor min-h-[240px]">
+                                    <pre
+                                        aria-hidden="true"
+                                        className="sql-highlight pointer-events-none absolute inset-0 p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap break-words"
+                                        dangerouslySetInnerHTML={{ __html: highlightSQL(userSQL) }}
+                                    ></pre>
+                                    <textarea 
+                                        value={userSQL} 
+                                        onChange={(e) => setUserSQL(e.target.value)} 
+                                        spellCheck="false" 
+                                        className="relative z-10 w-full h-full bg-transparent p-4 font-mono text-xs text-transparent caret-emerald-300 outline-none resize-none leading-relaxed" 
+                                    />
+                                </div>
+                                <div className={`px-4 py-2 text-[11px] font-mono border-t border-slate-800/50 flex items-center gap-2 ${msg.type === 'success' ? 'text-emerald-400 bg-emerald-950/20' : msg.type === 'error' ? 'text-red-400 bg-red-950/20' : 'text-slate-400 bg-slate-900/30'}`}>
+                                    <i className={`fa-solid ${msg.type === 'success' ? 'fa-check' : msg.type === 'error' ? 'fa-triangle-exclamation' : 'fa-terminal'}`}></i>
+                                    {msg.text}
+                                </div>
+                            </div>
+
+                            {/* Results Viewer */}
+                            <div className="glass-panel rounded-xl flex-1 flex flex-col overflow-hidden min-h-[360px]">
+                                <div className="bg-slate-900/80 px-4 py-2 border-b border-slate-800/50 text-[10px] font-mono text-slate-400 tracking-widest uppercase">Output_Stream</div>
+                                <div className="flex-1 overflow-auto custom-scroll p-2 max-h-[520px]">
+                                    {result.length === 0 ? (
+                                        <div className="h-full flex flex-col items-center justify-center opacity-30 text-slate-500">
+                                            <i className="fa-solid fa-table text-3xl mb-2"></i>
+                                            <p className="text-xs font-mono uppercase">No output generated</p>
+                                        </div>
+                                    ) : (
+                                        <table className="w-full text-left text-xs border-collapse font-mono">
+                                            <thead className="bg-slate-900/80 sticky top-0">
+                                                <tr>{Object.keys(result[0] || {}).map((col, i) => <th key={i} className="p-3 text-emerald-500 border-b border-slate-800 uppercase text-[10px] tracking-wider">{col}</th>)}</tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-800/40">
+                                                {result.map((row, i) => (
+                                                    <tr key={i} className="hover:bg-emerald-900/10 transition-colors">
+                                                        {Object.values(row).map((val, j) => <td key={j} className="p-3 text-slate-300">{val}</td>)}
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    )}
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
