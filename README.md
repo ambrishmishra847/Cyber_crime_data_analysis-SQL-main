@@ -282,7 +282,7 @@ Bachelor of Technology in Computer Science and Engineering
 Greater Noida Institute of Technology, 2022-2026
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-ambrish8178-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/ambrish8178)
-[![GitHub](https://img.shields.io/badge/GitHub-ambrish8178-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/ambrish8178)
+[![GitHub](https://img.shields.io/badge/GitHub-ambrish8178-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/ambrishmishra847)
 [![Email](https://img.shields.io/badge/Email-ambrishmishra847%40gmail.com-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:ambrishmishra847@gmail.com)
 
 </div>
